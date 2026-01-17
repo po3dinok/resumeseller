@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Поиск резюме | Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --secondary: #4299e1;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #f56565;
+            --light: #f7fafc;
+            --dark: #2d3748;
+            --gray: #718096;
+            --gray-light: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            padding: 0;
+            color: var(--dark);
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--gray-light);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: var(--light);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: var(--gray);
+        }
+
+        .range-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .range-group .form-control {
+            flex: 1;
+        }
+
+        .range-group span {
+            color: var(--gray);
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: var(--light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .checkbox-item:hover {
+            background: var(--gray-light);
+            transform: translateY(-1px);
+        }
+
+        .checkbox-item input {
+            width: auto;
+            margin-right: 10px;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-item span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab.active {
+            background: white;
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            position: sticky;
+            bottom: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--gray-light);
+            color: var(--dark);
+        }
+
+        .btn-secondary:hover {
+            background: #d2d8e0;
+        }
+
+        .status {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .status.loading {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+
+        .counter {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 12px;
+            line-height: 24px;
+            text-align: center;
+            margin-left: 8px;
+        }
+
+        .icon {
+            font-size: 18px;
+        }
+
+        .filters-summary {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .filters-summary h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--dark);
+        }
+
+        .filters-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-tag {
+            background: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow);
+        }
+
+        .filter-tag .remove {
+            cursor: pointer;
+            color: var(--danger);
+            font-size: 14px;
+        }
+
+        .toggle-filters {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto 20px;
+            transition: all 0.3s;
+        }
+
+        .toggle-filters:hover {
+            opacity: 0.9;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 15px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .checkbox-grid {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .tabs {
+                gap: 6px;
+            }
+            
+            .tab {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>
+                <span>🔍</span>
+                Поиск резюме
+            </h1>
+            <p>Заполните фильтры для поиска кандидатов</p>
+        </div>
+
+        <button class="toggle-filters" id="toggleFilters">
+            <span>📊</span>
+            Показать выбранные фильтры
+        </button>
+
+        <div class="filters-summary" id="filtersSummary">
+            <h3>Выбранные фильтры:</h3>
+            <div class="filters-list" id="filtersList"></div>
+        </div>
+
+        <div class="tabs" id="tabsContainer">
+            <button class="tab active" data-tab="basic">Основные</button>
+            <button class="tab" data-tab="personal">Кандидат</button>
+            <button class="tab" data-tab="job">Работа</button>
+            <button class="tab" data-tab="certificates">Сертификаты</button>
+        </div>
+
+        <!-- Основные параметры -->
+        <div class="tab-content active" id="basic">
+            <div class="card">
+                <div class="card-title">
+                    <span>📍</span>
+                    Основные параметры
+                </div>
+                
+                <div class="form-group">
+                    <label for="city">Город</label>
+                    <input type="text" id="city" class="form-control" placeholder="Например: Москва">
+                </div>
+
+                <div class="form-group">
+                    <label for="specialty">Специальность</label>
+                    <input type="text" id="specialty" class="form-control" placeholder="Например: Сварщик">
+                </div>
+
+                <div class="form-group">
+                    <label for="position">Желаемая должность</label>
+                    <input type="text" id="position" class="form-control" placeholder="Например: Инженер">
+                </div>
+
+                <div class="form-group">
+                    <label for="limit">Количество результатов</label>
+                    <input type="number" id="limit" class="form-control" value="20" min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="blacklist">Чёрный список (опционально)</label>
+                    <input type="text" id="blacklist" class="form-control" placeholder="Название папки">
+                </div>
+            </div>
+        </div>
+
+        <!-- Параметры кандидата -->
+        <div class="tab-content" id="personal">
+            <div class="card">
+                <div class="card-title">
+                    <span>👤</span>
+                    Параметры кандидата
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Статус</label>
+                    <select id="status" class="form-control">
+                        <option value="">Любой статус</option>
+                        <option value="активный">Активный</option>
+                        <option value="неактивный">Неактивный</option>
+                        <option value="работает">Работает</option>
+                        <option value="в поиске">В поиске</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">Пол</label>
+                    <select id="gender" class="form-control">
+                        <option value="">Любой пол</option>
+                        <option value="мужской">Мужской</option>
+                        <option value="женский">Женский</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="citizenship">Гражданство</label>
+                    <input type="text" id="citizenship" class="form-control" placeholder="Например: РФ">
+                </div>
+
+                <div class="form-group">
+                    <label>Возраст</label>
+                    <div class="range-group">
+                        <input type="number" id="minAge" class="form-control" placeholder="От" min="18" max="100">
+                        <span>—</span>
+                        <input type="number" id="maxAge" class="form-control" placeholder="До" min="18" max="100">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="relocation">Готовность к переезду</label>
+                    <select id="relocation" class="form-control">
+                        <option value="">Не важно</option>
+                        <option value="да">Да</option>
+                        <option value="нет">Нет</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="business_trips">Готовность к командировкам</label>
+                    <select id="business_trips" class="form-control">
+                        <option value="">Не важно</option>
+                        <option value="да">Да</option>
+                        <option value="нет">Нет</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Рабочие параметры -->
+        <div class="tab-content" id="job">
+            <div class="card">
+                <div class="card-title">
+                    <span>💼</span>
+                    Рабочие параметры
+                </div>
+
+                <div class="form-group">
+                    <label for="min_salary">Минимальная зарплата (руб.)</label>
+                    <input type="number" id="min_salary" class="form-control" placeholder="Например: 50000">
+                </div>
+
+                <div class="form-group">
+                    <label for="min_experience">Минимальный стаж (лет)</label>
+                    <input type="number" id="min_experience" class="form-control" placeholder="Например: 3" step="0.5">
+                </div>
+            </div>
+        </div>
+
+        <!-- Сертификаты -->
+        <div class="tab-content" id="certificates">
+            <div class="card">
+                <div class="card-title">
+                    <span>📜</span>
+                    Сертификаты
+                    <span class="counter" id="certCounter">0</span>
+                </div>
+
+                <div class="checkbox-grid">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="нрс" value="есть">
+                        <span>НРС</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="ноприз" value="есть">
+                        <span>НОПРИЗ</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="накс" value="есть">
+                        <span>НАКС</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="вик" value="есть">
+                        <span>ВИК</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="оттб" value="есть">
+                        <span>ОТТБ</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="ов" value="есть">
+                        <span>ОВ</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="мк" value="есть">
+                        <span>МК</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="вк" value="есть">
+                        <span>ВК</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="эл" value="есть">
+                        <span>ЭЛ</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="сс" value="есть">
+                        <span>СС</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div id="statusMessage" class="status"></div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="clearForm()">
+                <span class="icon">🗑️</span>
+                Очистить
+            </button>
+            <button class="btn btn-primary" onclick="searchResumes()">
+                <span class="icon">🔍</span>
+                Найти резюме
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Состояние приложения
+        const state = {
+            filters: {},
+            showSummary: false
+        };
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            setupEventListeners();
+            updateCertCounter();
+            document.getElementById('city').focus();
+        });
+
+        // Настройка табов
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.dataset.tab;
+                    
+                    // Удаляем активный класс у всех табов и контента
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Добавляем активный класс выбранному табу и контенту
+                    tab.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+
+        // Настройка слушателей событий
+        function setupEventListeners() {
+            // Слушатели для обновления счетчика сертификатов
+            document.querySelectorAll('.checkbox-item input').forEach(checkbox => {
+                checkbox.addEventListener('change', updateCertCounter);
+            });
+            
+            // Слушатели для обновления фильтров
+            const filterInputs = [
+                'city', 'specialty', 'position', 'limit', 'blacklist',
+                'status', 'gender', 'citizenship', 'minAge', 'maxAge',
+                'relocation', 'business_trips', 'min_salary', 'min_experience'
+            ];
+            
+            filterInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', updateFiltersSummary);
+                    input.addEventListener('change', updateFiltersSummary);
+                }
+            });
+            
+            // Кнопка показа/скрытия фильтров
+            document.getElementById('toggleFilters').addEventListener('click', toggleFiltersSummary);
+        }
+
+        // Обновление счетчика сертификатов
+        function updateCertCounter() {
+            const checkboxes = document.querySelectorAll('.checkbox-item input:checked');
+            const counter = document.getElementById('certCounter');
+            counter.textContent = checkboxes.length;
+        }
+
+        // Показать/скрыть сводку фильтров
+        function toggleFiltersSummary() {
+            state.showSummary = !state.showSummary;
+            const summary = document.getElementById('filtersSummary');
+            const toggleBtn = document.getElementById('toggleFilters');
+            
+            if (state.showSummary) {
+                summary.style.display = 'block';
+                toggleBtn.innerHTML = '<span>📊</span> Скрыть выбранные фильтры';
+                updateFiltersSummary();
+            } else {
+                summary.style.display = 'none';
+                toggleBtn.innerHTML = '<span>📊</span> Показать выбранные фильтры';
+            }
+        }
+
+        // Обновление сводки фильтров
+        function updateFiltersSummary() {
+            const filtersList = document.getElementById('filtersList');
+            filtersList.innerHTML = '';
+            
+            // Собираем все активные фильтры
+            const activeFilters = [];
+            
+            // Текстовые поля
+            const textFields = ['city', 'specialty', 'position', 'citizenship', 'blacklist'];
+            textFields.forEach(field => {
+                const value = document.getElementById(field).value.trim();
+                if (value) {
+                    let label = '';
+                    switch(field) {
+                        case 'city': label = 'Город'; break;
+                        case 'specialty': label = 'Специальность'; break;
+                        case 'position': label = 'Должность'; break;
+                        case 'citizenship': label = 'Гражданство'; break;
+                        case 'blacklist': label = 'Чёрный список'; break;
+                    }
+                    activeFilters.push({ label, value, field });
+                }
+            });
+            
+            // Выпадающие списки
+            const selectFields = ['status', 'gender', 'relocation', 'business_trips'];
+            selectFields.forEach(field => {
+                const select = document.getElementById(field);
+                const value = select.value;
+                if (value) {
+                    let label = '';
+                    switch(field) {
+                        case 'status': label = 'Статус'; break;
+                        case 'gender': label = 'Пол'; break;
+                        case 'relocation': label = 'Переезд'; break;
+                        case 'business_trips': label = 'Командировки'; break;
+                    }
+                    activeFilters.push({ label, value, field });
+                }
+            });
+            
+            // Числовые поля
+            const minAge = document.getElementById('minAge').value;
+            const maxAge = document.getElementById('maxAge').value;
+            if (minAge || maxAge) {
+                const ageValue = minAge && maxAge ? `${minAge}-${maxAge} лет` : 
+                                minAge ? `от ${minAge} лет` : `до ${maxAge} лет`;
+                activeFilters.push({ label: 'Возраст', value: ageValue, field: 'age' });
+            }
+            
+            const minSalary = document.getElementById('min_salary').value;
+            if (minSalary) {
+                activeFilters.push({ label: 'Зарплата', value: `от ${minSalary} руб.`, field: 'min_salary' });
+            }
+            
+            const minExperience = document.getElementById('min_experience').value;
+            if (minExperience) {
+                activeFilters.push({ label: 'Стаж', value: `от ${minExperience} лет`, field: 'min_experience' });
+            }
+            
+            const limit = document.getElementById('limit').value;
+            if (limit && limit !== '20') {
+                activeFilters.push({ label: 'Лимит', value: `${limit} резюме`, field: 'limit' });
+            }
+            
+            // Сертификаты
+            const certCheckboxes = document.querySelectorAll('.checkbox-item input:checked');
+            if (certCheckboxes.length > 0) {
+                const certNames = Array.from(certCheckboxes).map(cb => cb.id.toUpperCase()).join(', ');
+                activeFilters.push({ label: 'Сертификаты', value: certNames, field: 'certificates' });
+            }
+            
+            // Отображаем фильтры
+            activeFilters.forEach(filter => {
+                const tag = document.createElement('div');
+                tag.className = 'filter-tag';
+                tag.innerHTML = `
+                    <span>${filter.label}: ${filter.value}</span>
+                    <span class="remove" onclick="removeFilter('${filter.field}')">×</span>
+                `;
+                filtersList.appendChild(tag);
+            });
+            
+            // Обновляем состояние
+            state.filters = activeFilters;
+        }
+
+        // Удаление фильтра
+        function removeFilter(field) {
+            switch(field) {
+                case 'city':
+                case 'specialty':
+                case 'position':
+                case 'citizenship':
+                case 'blacklist':
+                    document.getElementById(field).value = '';
+                    break;
+                case 'status':
+                case 'gender':
+                case 'relocation':
+                case 'business_trips':
+                    document.getElementById(field).value = '';
+                    break;
+                case 'age':
+                    document.getElementById('minAge').value = '';
+                    document.getElementById('maxAge').value = '';
+                    break;
+                case 'min_salary':
+                    document.getElementById('min_salary').value = '';
+                    break;
+                case 'min_experience':
+                    document.getElementById('min_experience').value = '';
+                    break;
+                case 'limit':
+                    document.getElementById('limit').value = '20';
+                    break;
+                case 'certificates':
+                    document.querySelectorAll('.checkbox-item input:checked').forEach(cb => cb.checked = false);
+                    updateCertCounter();
+                    break;
+            }
+            updateFiltersSummary();
+        }
+
+        // Показать статус
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Очистка формы
+        function clearForm() {
+            // Текстовые поля
+            document.getElementById('city').value = '';
+            document.getElementById('specialty').value = '';
+            document.getElementById('position').value = '';
+            document.getElementById('limit').value = '20';
+            document.getElementById('blacklist').value = '';
+            document.getElementById('citizenship').value = '';
+            document.getElementById('min_salary').value = '';
+            document.getElementById('min_experience').value = '';
+            
+            // Выпадающие списки
+            document.getElementById('status').value = '';
+            document.getElementById('gender').value = '';
+            document.getElementById('relocation').value = '';
+            document.getElementById('business_trips').value = '';
+            
+            // Возраст
+            document.getElementById('minAge').value = '';
+            document.getElementById('maxAge').value = '';
+            
+            // Чекбоксы
+            document.querySelectorAll('.checkbox-item input').forEach(cb => cb.checked = false);
+            
+            // Обновляем интерфейс
+            updateCertCounter();
+            updateFiltersSummary();
+            
+            showStatus('Все фильтры очищены', 'success');
+            document.getElementById('city').focus();
+        }
+
+        // Поиск резюме
+        function searchResumes() {
+            // Собираем данные из формы
+            const searchData = {
+                city: document.getElementById('city').value.trim(),
+                specialty: document.getElementById('specialty').value.trim(),
+                position: document.getElementById('position').value.trim(),
+                limit: parseInt(document.getElementById('limit').value) || 20,
+                blacklist: document.getElementById('blacklist').value.trim(),
+                status: document.getElementById('status').value,
+                gender: document.getElementById('gender').value,
+                citizenship: document.getElementById('citizenship').value.trim(),
+                relocation: document.getElementById('relocation').value,
+                business_trips: document.getElementById('business_trips').value,
+                min_age: document.getElementById('minAge').value,
+                max_age: document.getElementById('maxAge').value,
+                min_salary: document.getElementById('min_salary').value,
+                min_experience: document.getElementById('min_experience').value
+            };
+            
+            // Добавляем сертификаты
+            const certs = ['нрс', 'ноприз', 'накс', 'вик', 'оттб', 'ов', 'мк', 'вк', 'эл', 'сс'];
+            certs.forEach(cert => {
+                if (document.getElementById(cert).checked) {
+                    searchData[cert] = 'есть';
+                }
+            });
+            
+            // Проверяем, есть ли хоть один параметр поиска
+            const hasSearchCriteria = Object.values(searchData).some(value => {
+                if (typeof value === 'string') {
+                    return value.trim() !== '';
+                }
+                return value !== null && value !== undefined && value !== '';
+            });
+            
+            if (!hasSearchCriteria) {
+                showStatus('❌ Заполните хотя бы одно поле для поиска', 'error');
+                return;
+            }
+            
+            // Подсчитываем количество заполненных фильтров
+            const filledFilters = Object.values(searchData).filter(val => 
+                val && (typeof val !== 'string' || val.trim() !== '')
+            ).length;
+            
+            // Показываем статус поиска
+            showStatus(`🔍 Идет поиск по ${filledFilters} параметрам...`, 'loading');
+            
+            try {
+                // Отправляем данные в бота
+                tg.sendData(JSON.stringify(searchData));
+                
+                // Показываем сообщение об успешной отправке
+                showStatus('✅ Запрос отправлен! Результаты появятся в чате с ботом.', 'success');
+                
+                // Анимация загрузки перед закрытием
+                setTimeout(() => {
+                    tg.close();
+                }, 1500);
+                
+            } catch (error) {
+                showStatus(`❌ Ошибка отправки: ${error.message}`, 'error');
+                console.error('Ошибка отправки данных:', error);
+            }
+        }
+    </script>
+</body>
+</html>
