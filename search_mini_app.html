@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Поиск резюме | Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --primary: #3B82F6;
+            --primary-dark: #1D4ED8;
+            --secondary: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --light: #F9FAFB;
+            --dark: #111827;
+            --gray: #6B7280;
+            --gray-light: #E5E7EB;
+            --radius: 10px;
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--light);
+            min-height: 100vh;
+            color: var(--dark);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px 0;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--dark);
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .search-type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 8px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .search-type {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-type.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .search-panel {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .search-panel.active {
+            display: block;
+        }
+
+        .search-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-input-group {
+            margin-bottom: 16px;
+        }
+
+        .search-input-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: var(--transition);
+            background: var(--light);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .quick-action-btn {
+            padding: 16px;
+            background: white;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quick-action-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .quick-action-icon {
+            font-size: 24px;
+        }
+
+        .quick-action-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .quick-action-desc {
+            font-size: 11px;
+            color: var(--gray);
+            text-align: center;
+        }
+
+        .results-summary {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .results-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--dark);
+        }
+
+        .result-item {
+            padding: 12px;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .result-item:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .result-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--dark);
+        }
+
+        .result-match {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .result-details {
+            font-size: 12px;
+            color: var(--gray);
+            margin-bottom: 4px;
+        }
+
+        .result-action-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .result-action-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .status-message.success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
+        }
+
+        .status-message.error {
+            background: #FEE2E2;
+            color: #7F1D1D;
+            border: 1px solid #FECACA;
+        }
+
+        .status-message.loading {
+            background: #DBEAFE;
+            color: #1E40AF;
+            border: 1px solid #BFDBFE;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            position: sticky;
+            bottom: 16px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--gray-light);
+            color: var(--dark);
+        }
+
+        .btn-secondary:hover {
+            background: #D1D5DB;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .icon {
+            font-size: 18px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .phone-input-hint {
+            font-size: 11px;
+            color: var(--gray);
+            margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 12px;
+            }
+            
+            .header {
+                padding: 16px 0;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .search-type {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>
+                <span>🔍</span>
+                Поиск резюме
+            </h1>
+            <p>Выберите тип поиска</p>
+        </div>
+
+        <div class="search-type-selector">
+            <button class="search-type active" data-type="advanced">Фильтры</button>
+            <button class="search-type" data-type="name">По имени</button>
+            <button class="search-type" data-type="phone">По телефону</button>
+        </div>
+
+        <!-- Панель расширенного поиска -->
+        <div class="search-panel active" id="advancedPanel">
+            <div class="search-title">
+                <span>⚙️</span>
+                Параметры поиска
+            </div>
+            
+            <div class="quick-actions">
+                <div class="quick-action-btn" onclick="switchToNameSearch()">
+                    <div class="quick-action-icon">👤</div>
+                    <div class="quick-action-text">Поиск по имени</div>
+                    <div class="quick-action-desc">Нечеткий поиск</div>
+                </div>
+                <div class="quick-action-btn" onclick="switchToPhoneSearch()">
+                    <div class="quick-action-icon">📞</div>
+                    <div class="quick-action-text">Поиск по телефону</div>
+                    <div class="quick-action-desc">Точное совпадение</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель поиска по имени -->
+        <div class="search-panel" id="namePanel">
+            <div class="search-title">
+                <span>👤</span>
+                Поиск по имени
+            </div>
+            
+            <div class="search-input-group">
+                <label for="nameQuery">ФИО или часть имени</label>
+                <input type="text" id="nameQuery" class="search-input" 
+                       placeholder="Например: Иванов Иван">
+                <div class="phone-input-hint">Поиск по частичным совпадениям, результаты отсортированы по релевантности</div>
+            </div>
+        </div>
+
+        <!-- Панель поиска по телефону -->
+        <div class="search-panel" id="phonePanel">
+            <div class="search-title">
+                <span>📞</span>
+                Поиск по телефону
+            </div>
+            
+            <div class="search-input-group">
+                <label for="phoneQuery">Номер телефона</label>
+                <input type="text" id="phoneQuery" class="search-input" 
+                       placeholder="Например: +79161234567">
+                <div class="phone-input-hint">Поиск по точному совпадению номера телефона</div>
+            </div>
+        </div>
+
+        <!-- Результаты поиска по имени -->
+        <div class="results-summary" id="nameResults">
+            <div class="results-header">
+                <span>📋</span>
+                Найдено кандидатов: <span id="resultsCount">0</span>
+            </div>
+            <div id="resultsList"></div>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="clearSearch()">
+                <span class="icon">↻</span>
+                Сбросить
+            </button>
+            <button class="btn btn-primary" onclick="performSearch()">
+                <span class="icon">🔍</span>
+                Найти
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Состояние приложения
+        const state = {
+            currentSearchType: 'advanced',
+            nameResults: [],
+            phoneResult: null
+        };
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setupSearchTypeSelector();
+            document.getElementById('nameQuery').focus();
+        });
+
+        // Настройка переключателя типа поиска
+        function setupSearchTypeSelector() {
+            const searchTypes = document.querySelectorAll('.search-type');
+            const searchPanels = document.querySelectorAll('.search-panel');
+            
+            searchTypes.forEach(type => {
+                type.addEventListener('click', () => {
+                    const searchType = type.dataset.type;
+                    
+                    // Обновляем активный тип
+                    searchTypes.forEach(t => t.classList.remove('active'));
+                    type.classList.add('active');
+                    
+                    // Показываем соответствующую панель
+                    searchPanels.forEach(panel => panel.classList.remove('active'));
+                    document.getElementById(`${searchType}Panel`).classList.add('active');
+                    
+                    // Скрываем результаты предыдущего поиска
+                    hideResults();
+                    
+                    // Обновляем состояние
+                    state.currentSearchType = searchType;
+                    
+                    // Фокусируемся на поле ввода
+                    if (searchType === 'name') {
+                        document.getElementById('nameQuery').focus();
+                    } else if (searchType === 'phone') {
+                        document.getElementById('phoneQuery').focus();
+                    }
+                });
+            });
+        }
+
+        // Переключение на поиск по имени
+        function switchToNameSearch() {
+            document.querySelector('.search-type[data-type="name"]').click();
+        }
+
+        // Переключение на поиск по телефону
+        function switchToPhoneSearch() {
+            document.querySelector('.search-type[data-type="phone"]').click();
+        }
+
+        // Скрыть результаты
+        function hideResults() {
+            document.getElementById('nameResults').style.display = 'none';
+        }
+
+        // Показать статус
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type}`;
+            statusEl.style.display = 'block';
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Очистить поиск
+        function clearSearch() {
+            // Очищаем поля ввода
+            document.getElementById('nameQuery').value = '';
+            document.getElementById('phoneQuery').value = '';
+            
+            // Скрываем результаты
+            hideResults();
+            
+            // Сбрасываем состояние
+            state.nameResults = [];
+            state.phoneResult = null;
+            
+            // Показываем сообщение
+            showStatus('Поиск очищен', 'success');
+            
+            // Фокусируемся на текущем поле
+            if (state.currentSearchType === 'name') {
+                document.getElementById('nameQuery').focus();
+            } else if (state.currentSearchType === 'phone') {
+                document.getElementById('phoneQuery').focus();
+            }
+        }
+
+        // Функция для вычисления процента совпадения
+        function calculateMatchPercentage(searchTerm, candidateName) {
+            const searchLower = searchTerm.toLowerCase();
+            const candidateLower = candidateName.toLowerCase();
+            
+            // Проверяем точное совпадение
+            if (candidateLower === searchLower) {
+                return 100;
+            }
+            
+            // Проверяем, содержит ли имя поисковый запрос
+            if (candidateLower.includes(searchLower)) {
+                return Math.min(95, 50 + (searchLower.length / candidateLower.length) * 50);
+            }
+            
+            // Разбиваем на слова
+            const searchWords = searchLower.split(' ').filter(w => w.length > 0);
+            const candidateWords = candidateLower.split(' ').filter(w => w.length > 0);
+            
+            let totalMatch = 0;
+            let matchedWords = 0;
+            
+            // Проверяем совпадение слов
+            for (const searchWord of searchWords) {
+                let bestWordMatch = 0;
+                
+                for (const candidateWord of candidateWords) {
+                    // Проверяем, содержит ли слово поисковое слово
+                    if (candidateWord.includes(searchWord)) {
+                        bestWordMatch = Math.max(bestWordMatch, 
+                            Math.min(100, (searchWord.length / candidateWord.length) * 100));
+                    }
+                    
+                    // Проверяем расстояние Левенштейна для частичных совпадений
+                    if (searchWord.length >= 3 && candidateWord.length >= 3) {
+                        const maxLength = Math.max(searchWord.length, candidateWord.length);
+                        let distance = 0;
+                        
+                        // Простая реализация расстояния (для демонстрации)
+                        for (let i = 0; i < Math.min(searchWord.length, candidateWord.length); i++) {
+                            if (searchWord[i] === candidateWord[i]) {
+                                distance++;
+                            }
+                        }
+                        
+                        const similarity = (distance / maxLength) * 100;
+                        if (similarity > 60) {
+                            bestWordMatch = Math.max(bestWordMatch, similarity);
+                        }
+                    }
+                }
+                
+                if (bestWordMatch > 0) {
+                    totalMatch += bestWordMatch;
+                    matchedWords++;
+                }
+            }
+            
+            // Если совпали все слова поискового запроса
+            if (matchedWords === searchWords.length && matchedWords > 0) {
+                const averageMatch = totalMatch / matchedWords;
+                return Math.min(90, averageMatch);
+            }
+            
+            // Если совпала хотя бы часть слов
+            if (matchedWords > 0) {
+                return Math.min(80, (totalMatch / matchedWords) * (matchedWords / searchWords.length));
+            }
+            
+            return 0;
+        }
+
+        // Выполнить поиск
+        function performSearch() {
+            const searchType = state.currentSearchType;
+            
+            if (searchType === 'name') {
+                performNameSearch();
+            } else if (searchType === 'phone') {
+                performPhoneSearch();
+            } else {
+                performAdvancedSearch();
+            }
+        }
+
+        // Поиск по имени
+        function performNameSearch() {
+            const query = document.getElementById('nameQuery').value.trim();
+            
+            if (!query) {
+                showStatus('Введите имя для поиска', 'error');
+                return;
+            }
+            
+            showStatus('🔍 Ищем кандидатов...', 'loading');
+            
+            // Подготавливаем данные для отправки
+            const searchData = {
+                search_type: 'name',
+                name_query: query
+            };
+            
+            // Отправляем запрос
+            sendSearchRequest(searchData, 'name');
+        }
+
+        // Поиск по телефону
+        function performPhoneSearch() {
+            const query = document.getElementById('phoneQuery').value.trim();
+            
+            if (!query) {
+                showStatus('Введите номер телефона', 'error');
+                return;
+            }
+            
+            // Очищаем от лишних символов, оставляем только цифры и +
+            const cleanPhone = query.replace(/[^\d+]/g, '');
+            
+            if (cleanPhone.length < 5) {
+                showStatus('Введите корректный номер телефона', 'error');
+                return;
+            }
+            
+            showStatus('🔍 Ищем по номеру телефона...', 'loading');
+            
+            // Подготавливаем данные для отправки
+            const searchData = {
+                search_type: 'phone',
+                phone_query: cleanPhone
+            };
+            
+            // Отправляем запрос
+            sendSearchRequest(searchData, 'phone');
+        }
+
+        // Расширенный поиск (фильтры)
+        function performAdvancedSearch() {
+            // Здесь будет код для отправки расширенного поиска
+            // Для демонстрации показываем сообщение
+            showStatus('Для расширенного поиска используйте мини-приложение с фильтрами', 'error');
+        }
+
+        // Отправка запроса на поиск
+        function sendSearchRequest(searchData, searchType) {
+            try {
+                // Отправляем данные в бота
+                tg.sendData(JSON.stringify(searchData));
+                
+                // Для демонстрации симулируем получение результатов
+                // В реальном приложении бот должен обработать запрос и вернуть результаты
+                setTimeout(() => {
+                    simulateSearchResults(searchData, searchType);
+                }, 1000);
+                
+            } catch (error) {
+                showStatus(`Ошибка отправки: ${error.message}`, 'error');
+                console.error('Ошибка отправки данных:', error);
+            }
+        }
+
+        // Симуляция получения результатов (для демонстрации)
+        function simulateSearchResults(searchData, searchType) {
+            if (searchType === 'name') {
+                // Симулируем результаты поиска по имени
+                const mockResults = [
+                    { id: 1, name: 'Иванов Иван Иванович', position: 'Инженер-сварщик', city: 'Москва', salary: '80000 руб.', match: 95 },
+                    { id: 2, name: 'Петров Иван Сергеевич', position: 'Сварщик', city: 'Санкт-Петербург', salary: '75000 руб.', match: 85 },
+                    { id: 3, name: 'Сидоров Иван Петрович', position: 'Мастер сварочных работ', city: 'Екатеринбург', salary: '85000 руб.', match: 80 },
+                    { id: 4, name: 'Иванова Анна Ивановна', position: 'Инженер', city: 'Новосибирск', salary: '70000 руб.', match: 75 },
+                    { id: 5, name: 'Кузнецов Иван Алексеевич', position: 'Сварщик-монтажник', city: 'Казань', salary: '78000 руб.', match: 70 },
+                    { id: 6, name: 'Иванов Сергей Петрович', position: 'Старший сварщик', city: 'Москва', salary: '90000 руб.', match: 65 },
+                    { id: 7, name: 'Смирнов Иван Дмитриевич', position: 'Сварщик', city: 'Ростов-на-Дону', salary: '72000 руб.', match: 60 },
+                    { id: 8, name: 'Иванов Дмитрий Сергеевич', position: 'Инженер-технолог', city: 'Воронеж', salary: '82000 руб.', match: 55 },
+                    { id: 9, name: 'Федоров Иван Николаевич', position: 'Сварщик', city: 'Краснодар', salary: '68000 руб.', match: 50 },
+                    { id: 10, name: 'Иванов Алексей Викторович', position: 'Мастер участка', city: 'Уфа', salary: '95000 руб.', match: 45 }
+                ];
+                
+                // Сортируем по проценту совпадения
+                mockResults.sort((a, b) => b.match - a.match);
+                
+                // Ограничиваем 20 результатами
+                const limitedResults = mockResults.slice(0, 20);
+                
+                // Сохраняем в состоянии
+                state.nameResults = limitedResults;
+                
+                // Отображаем результаты
+                displayNameResults(limitedResults);
+                
+                showStatus(`Найдено ${limitedResults.length} кандидатов`, 'success');
+                
+            } else if (searchType === 'phone') {
+                // Симулируем результат поиска по телефону
+                const mockResult = {
+                    id: 1,
+                    name: 'Иванов Иван Иванович',
+                    phone: searchData.phone_query,
+                    position: 'Инженер-сварщик',
+                    city: 'Москва',
+                    salary: '80000 руб.',
+                    experience: '5 лет',
+                    certificates: ['НАКС', 'ВИК']
+                };
+                
+                // Сохраняем в состоянии
+                state.phoneResult = mockResult;
+                
+                // Отображаем результат
+                displayPhoneResult(mockResult);
+                
+                showStatus('Найден точный совпадение!', 'success');
+            }
+        }
+
+        // Отображение результатов поиска по имени
+        function displayNameResults(results) {
+            const resultsList = document.getElementById('resultsList');
+            const resultsCount = document.getElementById('resultsCount');
+            
+            // Очищаем список
+            resultsList.innerHTML = '';
+            
+            // Обновляем счетчик
+            resultsCount.textContent = results.length;
+            
+            // Создаем элементы результатов
+            results.forEach((result, index) => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.dataset.id = result.id;
+                
+                // Определяем цвет совпадения
+                let matchColor = '#EF4444'; // Красный для низкого совпадения
+                if (result.match >= 80) matchColor = '#10B981'; // Зеленый для высокого
+                else if (result.match >= 60) matchColor = '#F59E0B'; // Желтый для среднего
+                
+                resultItem.innerHTML = `
+                    <div class="result-name">${index + 1}. ${result.name}</div>
+                    <div class="result-match" style="background: ${matchColor}">
+                        Совпадение: ${result.match}%
+                    </div>
+                    <div class="result-details">
+                        📍 ${result.city} • 💼 ${result.position}
+                    </div>
+                    <div class="result-details">
+                        💰 ${result.salary}
+                    </div>
+                    <div class="result-actions">
+                        <button class="result-action-btn" onclick="requestResume(${result.id}, '${result.name}')">
+                            📄 Получить резюме
+                        </button>
+                        <button class="result-action-btn" style="background: var(--secondary)" 
+                                onclick="showCandidateDetails(${result.id})">
+                            👁 Подробнее
+                        </button>
+                    </div>
+                `;
+                
+                resultsList.appendChild(resultItem);
+            });
+            
+            // Показываем блок результатов
+            document.getElementById('nameResults').style.display = 'block';
+        }
+
+        // Отображение результата поиска по телефону
+        function displayPhoneResult(result) {
+            // Создаем подробную карточку кандидата
+            const resultHtml = `
+                <div class="result-item" style="border-color: var(--secondary); background: rgba(16, 185, 129, 0.05);">
+                    <div class="result-name" style="font-size: 18px; margin-bottom: 8px;">${result.name}</div>
+                    <div class="result-details">
+                        📞 <strong>Телефон:</strong> ${result.phone}
+                    </div>
+                    <div class="result-details">
+                        📍 <strong>Город:</strong> ${result.city}
+                    </div>
+                    <div class="result-details">
+                        💼 <strong>Должность:</strong> ${result.position}
+                    </div>
+                    <div class="result-details">
+                        💰 <strong>Зарплата:</strong> ${result.salary}
+                    </div>
+                    <div class="result-details">
+                        📅 <strong>Стаж:</strong> ${result.experience}
+                    </div>
+                    <div class="result-details">
+                        📜 <strong>Сертификаты:</strong> ${result.certificates.join(', ')}
+                    </div>
+                    <div class="result-actions">
+                        <button class="result-action-btn" onclick="requestResume(${result.id}, '${result.name}')" 
+                                style="background: var(--secondary); flex: 2;">
+                            📄 Получить резюме сейчас
+                        </button>
+                        <button class="result-action-btn" onclick="showSimilarCandidates('${result.name.split(' ')[0]}')">
+                            👥 Похожие кандидаты
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Очищаем и обновляем блок результатов
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = resultHtml;
+            
+            // Показываем блок результатов
+            document.getElementById('nameResults').style.display = 'block';
+            document.getElementById('resultsCount').textContent = '1';
+        }
+
+        // Запрос резюме кандидата
+        function requestResume(candidateId, candidateName) {
+            showStatus(`Запрашиваю резюме ${candidateName}...`, 'loading');
+            
+            // Отправляем запрос на получение резюме
+            const requestData = {
+                action: 'get_resume',
+                candidate_id: candidateId,
+                candidate_name: candidateName,
+                timestamp: Date.now()
+            };
+            
+            try {
+                tg.sendData(JSON.stringify(requestData));
+                showStatus(`✅ Запрос на резюме "${candidateName}" отправлен! Файл будет отправлен в чат.`, 'success');
+            } catch (error) {
+                showStatus(`Ошибка отправки запроса: ${error.message}`, 'error');
+            }
+        }
+
+        // Показать детали кандидата
+        function showCandidateDetails(candidateId) {
+            // Находим кандидата в результатах
+            const candidate = state.nameResults.find(r => r.id === candidateId);
+            
+            if (candidate) {
+                // Создаем подробное окно (в реальном приложении можно сделать модальное окно)
+                alert(`Детальная информация:\n\nИмя: ${candidate.name}\nГород: ${candidate.city}\nДолжность: ${candidate.position}\nЗарплата: ${candidate.salary}\nСовпадение: ${candidate.match}%`);
+            }
+        }
+
+        // Показать похожих кандидатов
+        function showSimilarCandidates(namePart) {
+            // Переключаемся на поиск по имени с предзаполненным значением
+            switchToNameSearch();
+            document.getElementById('nameQuery').value = namePart;
+            performNameSearch();
+        }
+
+        // Обработка данных от бота (должна быть интегрирована с реальным ботом)
+        function handleBotResponse(data) {
+            try {
+                const response = typeof data === 'string' ? JSON.parse(data) : data;
+                
+                if (response.type === 'name_search_results') {
+                    // Обработка результатов поиска по имени от бота
+                    state.nameResults = response.results;
+                    displayNameResults(response.results);
+                    showStatus(`Найдено ${response.results.length} кандидатов`, 'success');
+                    
+                } else if (response.type === 'phone_search_result') {
+                    // Обработка результата поиска по телефону от бота
+                    if (response.found) {
+                        state.phoneResult = response.candidate;
+                        displayPhoneResult(response.candidate);
+                        showStatus('Найден точный совпадение!', 'success');
+                    } else {
+                        showStatus('Кандидат с таким номером телефона не найден', 'error');
+                    }
+                    
+                } else if (response.type === 'resume_sent') {
+                    // Подтверждение отправки резюме
+                    showStatus(`✅ Резюме "${response.candidate_name}" отправлено в чат`, 'success');
+                }
+            } catch (error) {
+                console.error('Ошибка обработки ответа от бота:', error);
+            }
+        }
+    </script>
+</body>
+</html>
